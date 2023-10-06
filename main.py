@@ -1,76 +1,97 @@
 from tkinter import *
-from PIL import Image, ImageTk
-from cryptography.fernet import Fernet
+from tkinter import messagebox
+import base64
 
+#apply cryptography with vigenere ciphher
+#https://stackoverflow.com/a/38223403
 
-# SCREEN
-screen = Tk()
-screen.config(background="#EAEDED", pady=30, padx=30)
-screen.minsize(width=300, height=500)
-screen.title("My Crypto Note Programming")
+def encode(key, clear):
+    enc = []
+    for i in range(len(clear)):
+        key_c = key[i % len(key)]
+        enc_c = chr((ord(clear[i]) + ord(key_c)) % 256)
+        enc.append(enc_c)
+    return base64.urlsafe_b64encode("".join(enc).encode()).decode()
 
-# ICON
-iconPhoto = PhotoImage(file="secretIcon.png")
-screen.iconphoto(False, iconPhoto)
+def decode(key, enc):
+    dec = []
+    enc = base64.urlsafe_b64decode(enc).decode()
+    for i in range(len(enc)):
+        key_c = key[i % len(key)]
+        dec_c = chr((256 + ord(enc[i]) - ord(key_c)) % 256)
+        dec.append(dec_c)
+    return "".join(dec)
 
-# PHOTO
-picture = Image.open("secret.png")
-resizePic = picture.resize((100, 100))
-photo = ImageTk.PhotoImage(resizePic)
-labelImage = Label(screen, image=photo)
-labelImage.pack()
+#save notes
+def save_and_encrypt_notes():
+    title = title_entry.get()
+    message = input_text.get("1.0",END)
+    master_secret = master_secret_input.get()
 
-# TITLE
-titleLabel = Label(text="Enter Your Title", pady=5)
-titleLabel.pack()
-titleEntry = Entry()
-titleEntry.pack()
-exox = Label(text="")
-exox.pack()
+    if len(title) == 0 or len(message) == 0 or len(master_secret) == 0:
+            messagebox.showinfo(title="Error!", message="Please enter all information.")
+    else:
+        message_encrypted = encode(master_secret, message)
 
-# SECRET
-secretLabel = Label(text="Enter Your Secret")
-secretLabel.pack()
-secretText = Text(width=25, height=6)
-secretText.pack()
-exoxo = Label(text="")
-exoxo.pack()
+        try:
+            with open("mysecret.txt", "a") as data_file:
+                data_file.write(f'\n{title}\n{message_encrypted}')
+        except FileNotFoundError:
+            with open("mysecret.txt", "w") as data_file:
+                data_file.write(f'\n{title}\n{message_encrypted}')
+        finally:
+            title_entry.delete(0, END)
+            master_secret_input.delete(0, END)
+            input_text.delete("1.0",END)
 
-# MASTER KEY
-masterLabel = Label(text="Enter Master Key")
-masterLabel.pack()
-masterEntry = Entry()
-masterEntry.pack()
-exoxox = Label(text="")
-exoxox.pack()
+#decrypt notes
 
-# RESULT Label
-resultLabel = Label()
-resultLabel.pack()
+def decrypt_notes():
+    message_encrypted = input_text.get("1.0", END)
+    master_secret = master_secret_input.get()
 
+    if len(message_encrypted) == 0 or len(master_secret) == 0:
+        messagebox.showinfo(title="Error!", message="Please enter all information.")
+    else:
+        try:
+            decrypted_message = decode(master_secret,message_encrypted)
+            input_text.delete("1.0", END)
+            input_text.insert("1.0", decrypted_message)
+        except:
+            messagebox.showinfo(title="Error!", message="Please make sure of encrypted info.")
 
-def saveButton():
-    key = masterEntry.get()
-    plaintext = secretText.get("1.0", END)
+#UI
 
-    fernet = Fernet(key)
-    cipher_text = fernet.encrypt(plaintext.encode())
+window = Tk()
+window.title("Secret Notes")
+window.config(padx=30, pady=30)
 
-    resultLabel.config(text=f"{cipher_text.decode()}")
-    print(resultLabel)
+canvas = Canvas(height=200, width=200)
+logo = PhotoImage(file="secret.png")
+canvas.create_image(100,100,image=logo)
+canvas.pack()
 
-# BUTTONS
-saveButton = Button(text="Save & Encrypt", pady=5, background="#229954",command=saveButton)
-saveButton.pack()
+title_info_label = Label(text="Enter your title",font=("Verdena",20,"normal"))
+title_info_label.pack()
 
-decButton = Button(text="Decrypt", pady=5, background="#B03A2E")
-decButton.pack()
+title_entry = Entry(width=30)
+title_entry.pack()
 
-# CRYPTOGRAPHY
+input_info_label = Label(text="Enter your secret",font=("Verdena",20,"normal"))
+input_info_label.pack()
 
+input_text = Text(width=50, height=25)
+input_text.pack()
 
+master_secret_label = Label(text="Enter master key",font=("Verdena",20,"normal"))
+master_secret_label.pack()
 
+master_secret_input = Entry(width=30)
+master_secret_input.pack()
 
+save_button = Button(text="Save & Encrypt", command=save_and_encrypt_notes)
+save_button.pack()
 
-
-screen.mainloop()
+decrypt_button = Button(text="Decrypt",command=decrypt_notes)
+decrypt_button.pack()
+window.mainloop()
