@@ -1,5 +1,6 @@
 from tkinter import *
 from PIL import Image, ImageTk
+from cryptography.fernet import Fernet
 
 
 # SCREEN
@@ -43,12 +44,33 @@ masterEntry.pack()
 exoxox = Label(text="")
 exoxox.pack()
 
+# RESULT Label
+resultLabel = Label()
+resultLabel.pack()
+
+
+def saveButton():
+    key = masterEntry.get()
+    plaintext = secretText.get("1.0", END)
+
+    fernet = Fernet(key)
+    cipher_text = fernet.encrypt(plaintext.encode())
+
+    resultLabel.config(text=f"{cipher_text.decode()}")
+    print(resultLabel)
+
 # BUTTONS
-saveButton = Button(text="Save & Encrypt", pady=5, background="#229954")
+saveButton = Button(text="Save & Encrypt", pady=5, background="#229954",command=saveButton)
 saveButton.pack()
 
 decButton = Button(text="Decrypt", pady=5, background="#B03A2E")
 decButton.pack()
+
+# CRYPTOGRAPHY
+
+
+
+
 
 
 screen.mainloop()
